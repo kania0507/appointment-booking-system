@@ -1,0 +1,13 @@
+# Symfony
+backend/vendor/
+backend/var/
+
+# Node
+frontend/node_modules/
+
+# IDE
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db

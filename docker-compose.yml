@@ -1,0 +1,16 @@
+
+services:
+  php:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+
+    volumes:
+      - .:/var/www/html
+
+    stdin_open: true
+    tty: true
+    container_name: appointment-booking-php
+
+    working_dir: /var/www/html
+
