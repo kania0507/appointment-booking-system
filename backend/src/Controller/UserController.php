@@ -7,11 +7,14 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use App\Entity\User;
+use App\Dto\CreateUserRequest;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class UserController
 {
     public function __construct(
         private UserService $userService,
+        private ValidatorInterface $validator,
     ) {
     }
 
@@ -20,10 +23,32 @@ class UserController
     {
         $data = $request->toArray();
 
+        $dto = new CreateUserRequest();
+        $dto->email = $data['email'] ?? null;
+        $dto->firstName = $data['firstName'] ?? null;
+        $dto->lastName = $data['lastName'] ?? null;
+
+        $errors = $this->validator->validate($dto);
+
+        if (count($errors) > 0) {
+            $validationErrors = [];
+
+            foreach ($errors as $error) {
+                $validationErrors[] = [
+                    'field' => $error->getPropertyPath(),
+                    'message' => $error->getMessage(),
+                ];
+            }
+
+            return new JsonResponse([
+                'errors' => $validationErrors,
+            ], 400);
+        }
+
         $user = $this->userService->createUser(
-            $data['email'],
-            $data['firstName'],
-            $data['lastName'],
+            $dto->email,
+            $dto->firstName,
+            $dto->lastName,
         );
 
         return new JsonResponse([
