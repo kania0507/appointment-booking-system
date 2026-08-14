@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import {
-  createAppointment,
+  createAppointment, ApiError,
   type CreateAppointmentData,
 } from '../services/appointmentService';
 import styles from './CreateAppointmentForm.module.css';
 import { Input } from './ui/Input';
 import { Button } from './ui/Button';
+
 
 interface CreateAppointmentFormProps {
   onCreated: () => void;
@@ -42,8 +43,12 @@ export function CreateAppointmentForm({
       setNotes('');
 
       onCreated();
-    } catch {
-      setError('Nie udało się utworzyć wizyty.');
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setError(error.message);
+      } else {
+        setError('Wystąpił nieoczekiwany błąd.');
+      }
     } finally {
       setSubmitting(false);
     }

@@ -24,6 +24,16 @@ export interface CreateAppointmentData {
   notes: string | null;
 }
 
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+  ) {
+    super(message);
+  }
+}
+
+
 export async function createAppointment(
   data: CreateAppointmentData,
 ): Promise<Appointment> {
@@ -36,7 +46,12 @@ export async function createAppointment(
   });
 
   if (!response.ok) {
-    throw new Error('Nie udało się utworzyć wizyty.');
+    const body = await response.json();
+
+    throw new ApiError(
+      body.error ?? 'Nie udało się utworzyć wizyty.',
+      response.status,
+    );
   }
 
   return response.json();

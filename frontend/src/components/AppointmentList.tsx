@@ -3,6 +3,7 @@ import {
   getAppointments,
   type Appointment,
 } from '../services/appointmentService';
+import { formatDateTime } from '../utils/formatDate';
 
 export function AppointmentList() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -35,7 +36,7 @@ export function AppointmentList() {
           {appointments.map((appointment) => (
             <li key={appointment.id}>
               <strong>
-                {appointment.startAt} – {appointment.endAt}
+                {formatDateTime(appointment.startAt)} –{' '} {formatDateTime(appointment.endAt)}
               </strong>
 
               <div>Status: {appointment.status}</div>
