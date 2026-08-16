@@ -2,6 +2,8 @@
 backend/vendor/
 backend/var/
 
+/vendor/
+
 # Node
 frontend/node_modules/
 
