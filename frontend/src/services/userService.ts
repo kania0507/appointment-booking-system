@@ -18,6 +18,11 @@ export interface CreateUserData {
   lastName: string;
 }
 
+export interface UpdateUserData {
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+}
 
 export interface ApiError {
   message: string;
@@ -33,7 +38,9 @@ export class ApiException extends Error {
   }
 }
 
-export async function createUser(data: CreateUserData): Promise<User> {
+export async function createUser(
+  data: CreateUserData,
+): Promise<User> {
   const response = await fetch(`${API_URL}/users`, {
     method: 'POST',
     headers: {
@@ -46,7 +53,30 @@ export async function createUser(data: CreateUserData): Promise<User> {
     const body = await response.json();
 
     throw new ApiException(
-      body.errors ?? [{ message: 'Failed to create user' }]
+      body.errors ?? [{ message: 'Failed to create user' }],
+    );
+  }
+
+  return response.json();
+}
+
+export async function updateUser(
+  id: number,
+  data: UpdateUserData,
+): Promise<User> {
+  const response = await fetch(`${API_URL}/users/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const body = await response.json();
+
+    throw new ApiException(
+      body.errors ?? [{ message: 'Failed to update user' }],
     );
   }
 

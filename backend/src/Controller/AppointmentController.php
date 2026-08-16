@@ -33,18 +33,34 @@ class AppointmentController
             );
         }
 
-        $appointment = $this->appointmentService->create(
-            $user,
-            new \DateTimeImmutable($command->startAt),
-            new \DateTimeImmutable($command->endAt),
-            $command->notes,
-        );
+        try {
+            $appointment = $this->appointmentService->create(
+                $user,
+                new \DateTimeImmutable($command->startAt),
+                new \DateTimeImmutable($command->endAt),
+                $command->notes,
+            );
+        } catch (\DomainException $exception) {
+            return new JsonResponse(
+                ['error' => $exception->getMessage()],
+                409
+            );
+        } catch (\InvalidArgumentException $exception) {
+            return new JsonResponse(
+                ['error' => $exception->getMessage()],
+                400
+            );
+        }
 
         return new JsonResponse([
             'id' => $appointment->getId(),
             'userId' => $user->getId(),
-            'startAt' => $appointment->getStartAt()?->format(\DateTimeInterface::ATOM),
-            'endAt' => $appointment->getEndAt()?->format(\DateTimeInterface::ATOM),
+            'startAt' => $appointment
+                ->getStartAt()
+                ?->format(\DateTimeInterface::ATOM),
+            'endAt' => $appointment
+                ->getEndAt()
+                ?->format(\DateTimeInterface::ATOM),
             'status' => $appointment->getStatus(),
             'notes' => $appointment->getNotes(),
         ], 201);
@@ -60,8 +76,12 @@ class AppointmentController
                 fn ($appointment) => [
                     'id' => $appointment->getId(),
                     'userId' => $appointment->getUser()?->getId(),
-                    'startAt' => $appointment->getStartAt()?->format(\DateTimeInterface::ATOM),
-                    'endAt' => $appointment->getEndAt()?->format(\DateTimeInterface::ATOM),
+                    'startAt' => $appointment
+                        ->getStartAt()
+                        ?->format(\DateTimeInterface::ATOM),
+                    'endAt' => $appointment
+                        ->getEndAt()
+                        ?->format(\DateTimeInterface::ATOM),
                     'status' => $appointment->getStatus(),
                     'notes' => $appointment->getNotes(),
                 ],
@@ -69,6 +89,4 @@ class AppointmentController
             )
         );
     }
-
-
 }

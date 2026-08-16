@@ -4,51 +4,27 @@ namespace App\Controller;
 
 use App\Service\UserService;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use App\Entity\User;
 use App\Dto\CreateUserRequest;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use App\Dto\UpdateUserRequest;
 
 class UserController
 {
     public function __construct(
         private UserService $userService,
-        private ValidatorInterface $validator,
     ) {
     }
 
-    #[Route('/api/users', methods: ['POST'])]
-    public function create(Request $request): JsonResponse
-    {
-        $data = $request->toArray();
-
-        $dto = new CreateUserRequest();
-        $dto->email = $data['email'] ?? null;
-        $dto->firstName = $data['firstName'] ?? null;
-        $dto->lastName = $data['lastName'] ?? null;
-
-        $errors = $this->validator->validate($dto);
-
-        if (count($errors) > 0) {
-            $validationErrors = [];
-
-            foreach ($errors as $error) {
-                $validationErrors[] = [
-                    'field' => $error->getPropertyPath(),
-                    'message' => $error->getMessage(),
-                ];
-            }
-
-            return new JsonResponse([
-                'errors' => $validationErrors,
-            ], 400);
-        }
-
+   #[Route('/api/users', methods: ['POST'])]
+    public function create(
+        #[MapRequestPayload] CreateUserRequest $request
+    ): JsonResponse {
         $user = $this->userService->createUser(
-            $dto->email,
-            $dto->firstName,
-            $dto->lastName,
+            $request->email,
+            $request->firstName,
+            $request->lastName,
         );
 
         return new JsonResponse([
@@ -93,6 +69,48 @@ class UserController
             'firstName' => $user->getFirstName(),
             'lastName' => $user->getLastName(),
         ]);
+    }
+
+    #[Route('/api/users/{id}', methods: ['PATCH'])]
+    public function update(
+        int $id,
+        #[MapRequestPayload] UpdateUserRequest $request,
+    ): JsonResponse {
+        $user = $this->userService->getUser($id);
+
+        if ($user === null) {
+            return new JsonResponse([
+                'error' => 'User not found',
+            ], 404);
+        }
+
+        $user = $this->userService->updateUser(
+            $user,
+            $request,
+        );
+
+        return new JsonResponse([
+            'id' => $user->getId(),
+            'email' => $user->getEmail(),
+            'firstName' => $user->getFirstName(),
+            'lastName' => $user->getLastName(),
+        ]);
+    }
+
+    #[Route('/api/users/{id}', methods: ['DELETE'])]
+    public function delete(int $id): JsonResponse
+    {
+        $user = $this->userService->getUser($id);
+
+        if ($user === null) {
+            return new JsonResponse([
+                'error' => 'User not found',
+            ], 404);
+        }
+
+        $this->userService->deleteUser($user);
+
+        return new JsonResponse(null, 204);
     }
 
 }

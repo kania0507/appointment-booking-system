@@ -1,38 +1,59 @@
 import { useState } from 'react';
-import { createUser, ApiException } from '../services/userService';
+import type { User } from '../types/User';
+import {
+  createUser,
+  updateUser,
+  ApiException,
+} from '../services/userService';
 import { Input } from './ui/Input';
 import { Button } from './ui/Button';
 
-interface CreateUserFormProps {
-  onUserCreated: () => void;
+interface UserFormProps {
+  user?: User;
+  onSaved: (user: User) => void;
+  onCancel?: () => void;
 }
 
-export function CreateUserForm({ onUserCreated }: CreateUserFormProps) {
-  const [email, setEmail] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+export function UserForm({
+  user,
+  onSaved,
+  onCancel,
+}: UserFormProps) {
+  const [email, setEmail] = useState(user?.email ?? '');
+  const [firstName, setFirstName] = useState(user?.firstName ?? '');
+  const [lastName, setLastName] = useState(user?.lastName ?? '');
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  const isEdit = user !== undefined;
+
+  async function handleSubmit(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault();
 
     setErrors({});
     setSubmitting(true);
 
     try {
-      await createUser({
-        email,
-        firstName,
-        lastName,
-      });
+      const savedUser = isEdit
+      ? await updateUser(user.id, {
+          email,
+          firstName,
+          lastName,
+        })
+      : await createUser({
+          email,
+          firstName,
+          lastName,
+        });
 
       setEmail('');
       setFirstName('');
       setLastName('');
 
-      onUserCreated();
+      onSaved(savedUser);
     } catch (error) {
       if (error instanceof ApiException) {
         const fieldErrors: Record<string, string> = {};
@@ -56,7 +77,7 @@ export function CreateUserForm({ onUserCreated }: CreateUserFormProps) {
 
   return (
     <form onSubmit={handleSubmit}>
-      <h2>Create user</h2>
+      <h2>{isEdit ? 'Edit user' : 'Create user'}</h2>
 
       {errors.form && <p>{errors.form}</p>}
 
@@ -85,8 +106,18 @@ export function CreateUserForm({ onUserCreated }: CreateUserFormProps) {
       />
 
       <Button type="submit" loading={submitting}>
-        Create user
+        {isEdit ? 'Save changes' : 'Create user'}
       </Button>
+
+      {isEdit && onCancel && (
+        <Button
+          type="button"
+          onClick={onCancel}
+          disabled={submitting}
+        >
+          Cancel
+        </Button>
+      )}
     </form>
   );
 }
