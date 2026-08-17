@@ -4,8 +4,15 @@ import {
   type Appointment,
 } from '../services/appointmentService';
 import { formatDateTime } from '../utils/formatDate';
+import { Button } from './ui/Button';
 
-export function AppointmentList() {
+interface AppointmentListProps {
+  onEdit: (appointment: Appointment) => void;
+}
+
+export function AppointmentList({
+  onEdit,
+}: AppointmentListProps) {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +43,8 @@ export function AppointmentList() {
           {appointments.map((appointment) => (
             <li key={appointment.id}>
               <strong>
-                {formatDateTime(appointment.startAt)} –{' '} {formatDateTime(appointment.endAt)}
+                {formatDateTime(appointment.startAt)} –{' '}
+                {formatDateTime(appointment.endAt)}
               </strong>
 
               <div>Status: {appointment.status}</div>
@@ -44,6 +52,13 @@ export function AppointmentList() {
               {appointment.notes && (
                 <div>Notatka: {appointment.notes}</div>
               )}
+
+              <Button
+                type="button"
+                onClick={() => onEdit(appointment)}
+              >
+                Edytuj
+              </Button>
             </li>
           ))}
         </ul>

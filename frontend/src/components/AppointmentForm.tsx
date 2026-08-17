@@ -1,22 +1,36 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   createAppointment,
+  updateAppointment,
   ApiError,
   type CreateAppointmentData,
+  type Appointment,
 } from '../services/appointmentService';
 import type { User } from '../types/User';
 import styles from './AppointmentForm.module.css';
-import { Input } from './ui/Input';
 import { Button } from './ui/Button';
 
 interface AppointmentFormProps {
   users: User[];
-  onCreated: () => void;
+  appointment?: Appointment;
+  onSaved: (appointment: Appointment) => void;
+  onCancel?: () => void;
+}
+
+function toLocalDateTime(value: string): string {
+  const date = new Date(value);
+
+  const offset = date.getTimezoneOffset();
+  const localDate = new Date(date.getTime() - offset * 60 * 1000);
+
+  return localDate.toISOString().slice(0, 16);
 }
 
 export function AppointmentForm({
   users,
-  onCreated,
+  appointment,
+  onSaved,
+  onCancel,
 }: AppointmentFormProps) {
   const [userId, setUserId] = useState('');
   const [startAt, setStartAt] = useState('');
@@ -24,6 +38,22 @@ export function AppointmentForm({
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (appointment) {
+      setUserId(String(appointment.userId));
+      setStartAt(toLocalDateTime(appointment.startAt));
+      setEndAt(toLocalDateTime(appointment.endAt));
+      setNotes(appointment.notes ?? '');
+    } else {
+      setUserId('');
+      setStartAt('');
+      setEndAt('');
+      setNotes('');
+    }
+
+    setError(null);
+  }, [appointment]);
 
   async function handleSubmit(
     event: React.FormEvent<HTMLFormElement>,
@@ -41,14 +71,11 @@ export function AppointmentForm({
         notes: notes || null,
       };
 
-      await createAppointment(data);
+      const savedAppointment = appointment
+        ? await updateAppointment(appointment.id, data)
+        : await createAppointment(data);
 
-      setUserId('');
-      setStartAt('');
-      setEndAt('');
-      setNotes('');
-
-      onCreated();
+      onSaved(savedAppointment);
     } catch (error) {
       if (error instanceof ApiError) {
         setError(error.message);
@@ -67,7 +94,7 @@ export function AppointmentForm({
         onSubmit={handleSubmit}
       >
         <h2 className={styles.title}>
-          Dodaj wizytę
+          {appointment ? 'Edytuj wizytę' : 'Dodaj wizytę'}
         </h2>
 
         <div className={styles.field}>
@@ -146,8 +173,17 @@ export function AppointmentForm({
           type="submit"
           loading={submitting}
         >
-          Dodaj wizytę
+          {appointment ? 'Zapisz zmiany' : 'Dodaj wizytę'}
         </Button>
+
+        {appointment && onCancel && (
+          <Button
+            type="button"
+            onClick={onCancel}
+          >
+            Anuluj
+          </Button>
+        )}
       </form>
     </section>
   );

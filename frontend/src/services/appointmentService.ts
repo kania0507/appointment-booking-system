@@ -15,7 +15,7 @@ export async function getAppointments(): Promise<Appointment[]> {
   }
 
   return response.json();
-} 
+}
 
 export interface CreateAppointmentData {
   userId: number;
@@ -32,7 +32,6 @@ export class ApiError extends Error {
     super(message);
   }
 }
-
 
 export async function createAppointment(
   data: CreateAppointmentData,
@@ -57,3 +56,26 @@ export async function createAppointment(
   return response.json();
 }
 
+export async function updateAppointment(
+  id: number,
+  data: CreateAppointmentData,
+): Promise<Appointment> {
+  const response = await fetch(`/api/appointments/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const body = await response.json();
+
+    throw new ApiError(
+      body.error ?? 'Nie udało się zaktualizować wizyty.',
+      response.status,
+    );
+  }
+
+  return response.json();
+}

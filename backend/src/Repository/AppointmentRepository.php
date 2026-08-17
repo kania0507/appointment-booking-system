@@ -21,15 +21,24 @@ class AppointmentRepository extends ServiceEntityRepository
         User $user,
         \DateTimeImmutable $startAt,
         \DateTimeImmutable $endAt,
+        ?Appointment $excludeAppointment = null,
     ): ?Appointment {
-        return $this->createQueryBuilder('a')
+        $queryBuilder = $this->createQueryBuilder('a')
             ->andWhere('a.user = :user')
             ->andWhere('a.startAt < :endAt')
             ->andWhere('a.endAt > :startAt')
             ->setParameter('user', $user)
             ->setParameter('startAt', $startAt)
             ->setParameter('endAt', $endAt)
-            ->setMaxResults(1)
+            ->setMaxResults(1);
+
+        if ($excludeAppointment !== null) {
+            $queryBuilder
+                ->andWhere('a != :excludeAppointment')
+                ->setParameter('excludeAppointment', $excludeAppointment);
+        }
+
+        return $queryBuilder
             ->getQuery()
             ->getOneOrNullResult();
     }

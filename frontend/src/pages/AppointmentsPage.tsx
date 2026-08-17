@@ -3,6 +3,7 @@ import { AppointmentList } from '../components/AppointmentList';
 import { AppointmentForm } from '../components/AppointmentForm';
 import { getUsers } from '../services/userService';
 import type { User } from '../types/User';
+import type { Appointment } from '../services/appointmentService';
 
 export function AppointmentsPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -10,6 +11,9 @@ export function AppointmentsPage() {
   const [usersError, setUsersError] = useState<string | null>(null);
 
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const [editingAppointment, setEditingAppointment] =
+    useState<Appointment | null>(null);
 
   useEffect(() => {
     async function loadUsers() {
@@ -26,8 +30,13 @@ export function AppointmentsPage() {
     loadUsers();
   }, []);
 
-  function handleAppointmentCreated() {
+  function handleSaved() {
+    setEditingAppointment(null);
     setRefreshKey((current) => current + 1);
+  }
+
+  function handleCancel() {
+    setEditingAppointment(null);
   }
 
   if (loadingUsers) {
@@ -41,11 +50,17 @@ export function AppointmentsPage() {
   return (
     <>
       <AppointmentForm
+        key={editingAppointment?.id ?? 'new'}
+        appointment={editingAppointment ?? undefined}
         users={users}
-        onCreated={handleAppointmentCreated}
+        onSaved={handleSaved}
+        onCancel={handleCancel}
       />
 
-      <AppointmentList key={refreshKey} />
+      <AppointmentList
+        key={refreshKey}
+        onEdit={setEditingAppointment}
+      />
     </>
   );
 }
