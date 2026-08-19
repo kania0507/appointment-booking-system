@@ -24,6 +24,7 @@ security:
 
     access_control:
         - { path: ^/api/login$, roles: PUBLIC_ACCESS }
+        - { path: ^/api/logout$, roles: ROLE_USER }
         - { path: ^/api/me$, roles: ROLE_USER }
         - { path: ^/api/appointments$, roles: ROLE_USER }
 
