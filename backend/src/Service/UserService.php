@@ -2,16 +2,18 @@
 
 namespace App\Service;
 
+use App\Dto\UpdateUserRequest;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use App\Dto\UpdateUserRequest;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class UserService
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
         private UserRepository $userRepository,
+        private UserPasswordHasherInterface $passwordHasher,
     ) {
     }
 
@@ -26,7 +28,36 @@ class UserService
             ->setEmail($email)
             ->setFirstName($firstName)
             ->setLastName($lastName)
+            ->setRoles(['ROLE_CUSTOMER'])
             ->setCreatedAt(new \DateTimeImmutable());
+
+        $this->entityManager->persist($user);
+        $this->entityManager->flush();
+
+        return $user;
+    }
+
+    public function registerUser(
+        string $email,
+        string $firstName,
+        string $lastName,
+        string $password,
+    ): User {
+        $user = new User();
+
+        $user
+            ->setEmail($email)
+            ->setFirstName($firstName)
+            ->setLastName($lastName)
+            ->setRoles(['ROLE_CUSTOMER'])
+            ->setCreatedAt(new \DateTimeImmutable());
+
+        $hashedPassword = $this->passwordHasher->hashPassword(
+            $user,
+            $password,
+        );
+
+        $user->setPassword($hashedPassword);
 
         $this->entityManager->persist($user);
         $this->entityManager->flush();

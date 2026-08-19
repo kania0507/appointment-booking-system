@@ -2,11 +2,11 @@
 
 namespace App\Service;
 
+use App\Dto\UpdateAppointmentRequest;
 use App\Entity\Appointment;
 use App\Entity\User;
 use App\Repository\AppointmentRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use App\Dto\UpdateAppointmentRequest;
 
 class AppointmentService
 {
@@ -41,7 +41,6 @@ class AppointmentService
         }
 
         $appointment = new Appointment();
-
         $appointment->setUser($user);
         $appointment->setStartAt($startAt);
         $appointment->setEndAt($endAt);
@@ -58,6 +57,11 @@ class AppointmentService
     public function getAll(): array
     {
         return $this->appointmentRepository->findAllAppointments();
+    }
+
+    public function getForUser(User $user): array
+    {
+        return $this->appointmentRepository->findAppointmentsByUser($user);
     }
 
     public function update(

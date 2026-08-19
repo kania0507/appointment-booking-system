@@ -3,13 +3,15 @@
 namespace App\Controller;
 
 use App\Command\CreateAppointmentCommand;
+use App\Dto\UpdateAppointmentRequest;
+use App\Entity\Appointment;
 use App\Entity\User;
 use App\Service\AppointmentService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
-use App\Dto\UpdateAppointmentRequest;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 class AppointmentController
 {
@@ -21,17 +23,13 @@ class AppointmentController
 
     #[Route('/api/appointments', methods: ['POST'])]
     public function create(
-        #[MapRequestPayload] CreateAppointmentCommand $command
+        #[CurrentUser] ?User $user,
+        #[MapRequestPayload] CreateAppointmentCommand $command,
     ): JsonResponse {
-        $user = $this->entityManager
-            ->getRepository(User::class)
-            ->find($command->userId);
-
         if ($user === null) {
-            return new JsonResponse(
-                ['error' => 'User not found.'],
-                404
-            );
+            return new JsonResponse([
+                'error' => 'Not authenticated.',
+            ], 401);
         }
 
         try {
@@ -42,20 +40,18 @@ class AppointmentController
                 $command->notes,
             );
         } catch (\DomainException $exception) {
-            return new JsonResponse(
-                ['error' => $exception->getMessage()],
-                409
-            );
+            return new JsonResponse([
+                'error' => $exception->getMessage(),
+            ], 409);
         } catch (\InvalidArgumentException $exception) {
-            return new JsonResponse(
-                ['error' => $exception->getMessage()],
-                400
-            );
+            return new JsonResponse([
+                'error' => $exception->getMessage(),
+            ], 400);
         }
 
         return new JsonResponse([
             'id' => $appointment->getId(),
-            'userId' => $user->getId(),
+            'userId' => $appointment->getUser()?->getId(),
             'startAt' => $appointment
                 ->getStartAt()
                 ?->format(\DateTimeInterface::ATOM),
@@ -68,36 +64,48 @@ class AppointmentController
     }
 
     #[Route('/api/appointments', methods: ['GET'])]
-    public function index(): JsonResponse
-    {
-        $appointments = $this->appointmentService->getAll();
+    public function index(
+        #[CurrentUser] ?User $user,
+    ): JsonResponse {
+        if ($user === null) {
+            return new JsonResponse([
+                'error' => 'Not authenticated.',
+            ], 401);
+        }
 
-        return new JsonResponse(
-            array_map(
-                fn ($appointment) => [
-                    'id' => $appointment->getId(),
-                    'userId' => $appointment->getUser()?->getId(),
-                    'startAt' => $appointment
-                        ->getStartAt()
-                        ?->format(\DateTimeInterface::ATOM),
-                    'endAt' => $appointment
-                        ->getEndAt()
-                        ?->format(\DateTimeInterface::ATOM),
-                    'status' => $appointment->getStatus(),
-                    'notes' => $appointment->getNotes(),
-                ],
-                $appointments,
-            )
-        );
+        $appointments = $this->appointmentService->getForUser($user);
+
+        return new JsonResponse(array_map(
+            fn (Appointment $appointment) => [
+                'id' => $appointment->getId(),
+                'userId' => $appointment->getUser()?->getId(),
+                'startAt' => $appointment
+                    ->getStartAt()
+                    ?->format(\DateTimeInterface::ATOM),
+                'endAt' => $appointment
+                    ->getEndAt()
+                    ?->format(\DateTimeInterface::ATOM),
+                'status' => $appointment->getStatus(),
+                'notes' => $appointment->getNotes(),
+            ],
+            $appointments,
+        ));
     }
 
     #[Route('/api/appointments/{id}', methods: ['PATCH'])]
     public function update(
         int $id,
+        #[CurrentUser] ?User $user,
         #[MapRequestPayload] UpdateAppointmentRequest $request,
     ): JsonResponse {
+        if ($user === null) {
+            return new JsonResponse([
+                'error' => 'Not authenticated.',
+            ], 401);
+        }
+
         $appointment = $this->entityManager
-            ->getRepository(\App\Entity\Appointment::class)
+            ->getRepository(Appointment::class)
             ->find($id);
 
         if ($appointment === null) {
@@ -106,14 +114,10 @@ class AppointmentController
             ], 404);
         }
 
-        $user = $this->entityManager
-            ->getRepository(User::class)
-            ->find($request->userId);
-
-        if ($user === null) {
+        if ($appointment->getUser()?->getId() !== $user->getId()) {
             return new JsonResponse([
-                'error' => 'User not found.',
-            ], 404);
+                'error' => 'You cannot modify this appointment.',
+            ], 403);
         }
 
         try {
@@ -135,8 +139,12 @@ class AppointmentController
         return new JsonResponse([
             'id' => $appointment->getId(),
             'userId' => $appointment->getUser()?->getId(),
-            'startAt' => $appointment->getStartAt()?->format(\DateTimeInterface::ATOM),
-            'endAt' => $appointment->getEndAt()?->format(\DateTimeInterface::ATOM),
+            'startAt' => $appointment
+                ->getStartAt()
+                ?->format(\DateTimeInterface::ATOM),
+            'endAt' => $appointment
+                ->getEndAt()
+                ?->format(\DateTimeInterface::ATOM),
             'status' => $appointment->getStatus(),
             'notes' => $appointment->getNotes(),
         ]);
